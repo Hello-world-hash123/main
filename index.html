@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture and Send Photo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/backend/public/styles.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #4f46e5;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--background) 0%, #1e293b 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .input-card {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .camera-feed {
+            position: relative;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: #000;
+            height: 400px;
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary);
+        }
+
+        .file-upload {
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .results-panel {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 2rem;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--surface);
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast-visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div class="logo">
+                <i class="fas fa-robot logo-icon"></i>
+                Photo Capture
+            </div>
+        </nav>
+        <div class="main-grid">
+            <div class="input-section">
+                <div class="input-card">
+                    <h2 class="section-title"><i class="fas fa-camera-retro fa-icon"></i>Input Source</h2>
+                    <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-cloud-upload-alt feature-icon"></i>
+                        <p>Drag & Drop or Click to Upload</p>
+                        <p class="text-secondary">Supports JPG, PNG</p>
+                        <input type="file" id="fileInput" hidden accept="image/*">
+                    </div>
+                    <div class="camera-feed">
+                        <video id="videoFeed"></video>
+                        <canvas id="canvas" hidden></canvas>
+                    </div>
+                    <div class="controls">
+                        <button class="btn btn-primary" onclick="startCamera()">
+                            <i class="fas fa-video fa-icon"></i>
+                            Start Camera
+                        </button>
+                        <button class="btn btn-primary" onclick="capturePhoto()">
+                            <i class="fas fa-camera fa-icon"></i>
+                            Capture Photo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="results-panel">
+                <h2 class="section-title"><i class="fas fa-image fa-icon"></i>Captured Photo</h2>
+                <div class="results-grid" id="results">
+                    <img id="capturedPhoto" src="" alt="Captured Photo"
+                        style="display: none; max-width: 100%; border-radius: 1rem;">
+                </div>
+                <button class="btn btn-primary" id="sendPhotoBtn" style="margin-top: 1rem; display: none;">
+                    <i class="fas fa-paper-plane fa-icon"></i>
+                    Send Photo
+                </button>
+            </div>
+        </div>
+        <div class="toast" id="toast"></div>
+    </div>
+    <script src="/backend/public/main.js"></script>
+    <script>// DOM Elements
+        const video = document.getElementById('videoFeed');
+        const canvas = document.getElementById('canvas');
+        const capturedPhoto = document.getElementById('capturedPhoto');
+        const fileInput = document.getElementById('fileInput');
+
+        // State
+        let photoDataUrl = null;
+
+        // Start Camera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                showToast('Camera access denied!', 'error');
+            }
+        }
+
+        // Capture Photo
+        function capturePhoto() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert to Data URL
+            photoDataUrl = canvas.toDataURL('image/jpeg');
+            capturedPhoto.src = photoDataUrl;
+            capturedPhoto.style.display = 'block';
+
+            // Automatically send the photo
+            sendPhoto(photoDataUrl);
+        }
+
+        // Handle File Upload
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    photoDataUrl = e.target.result;
+                    capturedPhoto.src = photoDataUrl;
+                    capturedPhoto.style.display = 'block';
+
+                    // Automatically send the photo
+                    sendPhoto(photoDataUrl);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Send Photo to Backend
+        async function sendPhoto(photoDataUrl) {
+            try {
+                console.log('Sending photo to backend...');
+                const response = await fetch('https://main-woad-two.vercel.app/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ photo: photoDataUrl }),
+                });
+
+                const data = await response.json();
+                console.log('Response:', data);
+
+                if (response.ok) {
+                    showToast('Photo sent successfully!', 'success');
+                } else {
+                    console.error('Error response:', data.error);
+                    showToast(data.error || 'Failed to send photo.', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending photo:', error);
+                showToast('Error sending photo.', 'error');
+            }
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast toast-visible ${type}`;
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+
+        // Initialize
+        startCamera();
+    </script>
+</body>
+
+</html>
